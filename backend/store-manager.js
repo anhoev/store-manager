@@ -110,8 +110,10 @@ const Product = cms.registerSchema({
         `,
     fn: {},
     serverFn: {
-        customName: function*() {
-            return this.name;
+        getInventory: function*() {
+            const inventory = new Inventory(cms, this);
+            yield* inventory.init();
+            return inventory.getSum();
         }
     },
     autopopulate: true,
@@ -128,11 +130,11 @@ const Product = cms.registerSchema({
         }
     ],
     initSchema: function (schema) {
-        schema.virtual('inventory').get(async(function*() {
+        /*schema.virtual('inventory').get(async(function*() {
             const inventory = new Inventory(cms, this);
             yield* inventory.init();
             return inventory.getSum();
-        }))
+        }))*/
     }
 });
 
