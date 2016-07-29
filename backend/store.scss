@@ -1,0 +1,61 @@
+@import "../node_modules/bootstrap-sass/assets/stylesheets/bootstrap/variables";
+@import "../node_modules/bootstrap-sass/assets/stylesheets/bootstrap/mixins";
+@import "../node_modules/bootstrap-sass/assets/stylesheets/bootstrap/grid";
+
+.shadow {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+// Box shadow with custom settings
+.product {
+  height: 100px;
+  @extend .row;
+  @extend .shadow;
+}
+
+.center {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.product-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.product-img-container {
+  @extend .col-xs-3;
+  height: 100%;
+  background-color: beige;
+  text-align: center;
+}
+
+.small-margin{
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;;
+}
+
+.product-content {
+  @extend .col-xs-9;
+  height: 100%;
+  p {
+    font-size: small;
+  }
+}
+
+.brand {
+  margin-top: 5px;
+  margin-right: 5px;
+}
+
+.product-price {
+  color: navy;
+}
+
+.product-convert {
+  background-color: aliceblue;
+  padding-left: 10px;
+  padding-right: 10px;
+}
