@@ -2,26 +2,7 @@
 const JsonFn = require('json-fn');
 const _ = require('lodash');
 const path = require('path');
-const q = require('q');
 const cms = require('cmsmon').instance;
-
-const deasync = require("deasync");
-
-function async(fn) {
-    function _async(fn, _this) {
-        let result = false, done = false;
-        q.spawn(function*() {
-            result = yield* fn.bind(_this)();
-            done = true;
-        })
-        deasync.loopWhile(()=>!done);
-        return result;
-    }
-
-    return function () {
-        return _async(fn, this);
-    }
-}
 
 const {mongoose, utils:{makeSelect, makeMultiSelect, makeTypeSelect, makeStyles, makeCustomSelect}} = cms;
 
@@ -130,11 +111,11 @@ const Product = cms.registerSchema({
         }
     ],
     initSchema: function (schema) {
-        /*schema.virtual('inventory').get(async(function*() {
+        schema.virtual('inventory').get(cms.async(function*() {
             const inventory = new Inventory(cms, this);
             yield* inventory.init();
             return inventory.getSum();
-        }))*/
+        }))
     }
 });
 
@@ -262,6 +243,7 @@ const Import = cms.registerSchema({
     status: {type: String, form: makeSelect('OrderOnTheWay', 'Received')},
     provider: {type: mongoose.Schema.Types.ObjectId, ref: 'Provider', autopopulate: true},
     note: String,
+    shippingCost: Number,
     item: {
         type: [{
             // convert: ConvertType,
@@ -317,6 +299,7 @@ const Export = cms.registerSchema({
     status: {type: String, form: makeSelect('OrderReceived', 'Paid', 'Delivered')},
     //provider: {type: mongoose.Schema.Types.ObjectId, ref: 'Provider', autopopulate: true},
     note: String,
+    shippingCost: Number,
     item: {
         type: [{
             billPrice: Number,
