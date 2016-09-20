@@ -15,3 +15,5 @@ require('./store-manager');
 cms.data.online.autoOpenAdmin = true;
 
 cms.server('backend/en', '');
+
+// cms.data.online.wsAddress = 'ws://192.168.1.5:8886';
