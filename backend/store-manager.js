@@ -3,13 +3,15 @@ const JsonFn = require('json-fn');
 const _ = require('lodash');
 const path = require('path');
 const cms = require('cmsmon').instance;
+const moment = require('moment-timezone');
+moment.tz.setDefault("Europe/Berlin");
 
 const {mongoose, utils:{makeSelect, makeMultiSelect, makeTypeSelect, makeStyles, makeCustomSelect}} = cms;
 
 const ConvertType = [{
-    unit2: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true},
-    quantity: Number,
     unit1: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true},
+    quantity: Number,
+    unit2: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true},
 }];
 
 const Brand = cms.registerSchema({
@@ -82,13 +84,8 @@ const Product = cms.registerSchema({
 }, {
     name: 'Product',
     formatterUrl: 'backend/product.html',
-    title: 'name',
+    title: 'title',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     serverFn: {
         getInventory: function*() {
@@ -116,6 +113,23 @@ const Product = cms.registerSchema({
             yield* inventory.init();
             return inventory.getSum();
         }))
+
+        schema.virtual('title').get(function () {
+            return `${this.name}   ${this.Id}`;
+        })
+    },
+    controller: function ($scope, cms, formService) {
+        $scope.createAdjustment = function () {
+            cms.createElement('Adjustment', {}, model => {
+                formService.edit(model._id, 'Adjustment', () => {
+                });
+            })
+        }
+    },
+    info: {
+        editorIcon: {
+            top: '56px'
+        }
     }
 });
 
@@ -139,7 +153,7 @@ const AddressType = {
     city: String
 }
 
-const Customer = cms.registerSchema({
+const customerSchema = {
     name: {type: String},
     contactPerson: String,
     Id: String,
@@ -163,18 +177,15 @@ const Customer = cms.registerSchema({
         }
     },
     note: String
-}, {
+};
+
+const Customer = cms.registerSchema(customerSchema, {
     name: 'Customer',
     formatter: `
             <h4>{{model.name}} - {{model.position}} - {{model.maxHour}}</h4>
         `,
     title: 'name',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true,
     alwaysLoad: true,
@@ -183,6 +194,32 @@ const Customer = cms.registerSchema({
         {title: 'detail', fields: ['address', 'location']}
     ]
 });
+
+const PersonalInformation = cms.registerSchema(_.assign(customerSchema, {
+    owner: {type: String, label: 'Inhaber'},
+    mobile: {type: String},
+    bank: {
+        name: String,
+        iban: String,
+        bic: String
+    },
+    ustId: {type: String, label: 'Ust-IdNr'}
+}), {
+    name: 'PersonalInformation',
+    formatter: `
+            <h4>{{model.name}} - {{model.position}} - {{model.maxHour}}</h4>
+        `,
+    title: 'name',
+    isViewElement: false,
+    fn: {},
+    autopopulate: true,
+    alwaysLoad: true,
+    tabs: [
+        {title: 'basic'},
+        {title: 'detail', fields: ['address', 'location']}
+    ]
+});
+
 
 const Provider = cms.registerSchema({
     name: {type: String},
@@ -208,11 +245,6 @@ const Provider = cms.registerSchema({
         `,
     title: 'name',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true,
     alwaysLoad: true
@@ -225,8 +257,9 @@ const unitFormImport = {
     templateManipulators: {
         preWrapper: [
             function (template, options, scope) {
-                scope.$watch('model.product', () => {
-                    if (scope.model.product) {
+                scope.$watch('model.product', (newVal, oldVal) => {
+                    if (!newVal) return;
+                    if (oldVal._id !== newVal._id) {
                         scope.model.unit = scope.model.product.importUnit;
                         scope.model.price = scope.model.product.importPrice;
                     }
@@ -246,14 +279,15 @@ const Import = cms.registerSchema({
     shippingCost: Number,
     item: {
         type: [{
-            // convert: ConvertType,
-            price: Number,
-            unit: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true, form: unitFormImport},
-            quantity: Number,
             product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', autopopulate: true},
+            quantity: Number,
+            unit: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true, form: unitFormImport},
+            price: Number,
+            // convert: ConvertType,
         }],
         form: {
-            type: 'tableSection'
+            type: 'tableSection',
+            templateOptions: {class: 'col-sm-12'}
         }
     }
 }, {
@@ -263,11 +297,6 @@ const Import = cms.registerSchema({
         `,
     title: 'date',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true,
     tabs: [
@@ -280,8 +309,9 @@ const unitFormExport = {
     templateManipulators: {
         preWrapper: [
             function (template, options, scope) {
-                scope.$watch('model.product', () => {
-                    if (scope.model.product) {
+                scope.$watch('model.product', (newVal, oldVal) => {
+                    if (!newVal) return;
+                    if (oldVal._id !== newVal._id) {
                         scope.model.unit = scope.model.product.exportUnit;
                         scope.model.price = scope.model.product.exportPrice;
                     }
@@ -293,56 +323,218 @@ const unitFormExport = {
     }
 };
 
+cms.app.use('/rechnung.html', cms.express.static(path.resolve(__dirname, 'rechnung.html')));
+cms.app.use('/lieferschein.html', cms.express.static(path.resolve(__dirname, 'lieferschein.html')));
+
 const Export = cms.registerSchema({
-    date: {type: Date, default: Date.now()},
-    Id: String,
-    status: {type: String, form: makeSelect('OrderReceived', 'Paid', 'Delivered')},
+    date: {
+        type: Date, default: Date.now(), label: 'Tag',
+        query: {
+            default: new Date(),
+            form: {type: 'input', templateOptions: {type: 'month', label: 'Monate'}},
+            fn: month => ({
+                $gte: moment(month).clone().startOf('month').toDate(),
+                $lte: moment(month).clone().endOf('month').toDate()
+            })
+        }
+    },
+    shipDate: {type: Date, default: Date.now(), label: 'Lieferdatum'},
+    Id: {type: String, label: 'Rechnung Nummer'},
+    paymentOption: {type: String, form: makeSelect('EC', 'Barverkauf', 'Überweisung'), label: 'Zahlungsmethod'},
+    status: {type: String, form: makeSelect('OrderReceived', 'Paid', 'Delivered'), label: 'Zustand'},
     //provider: {type: mongoose.Schema.Types.ObjectId, ref: 'Provider', autopopulate: true},
-    note: String,
-    shippingCost: Number,
+    note: {type: String, label: 'Notiz'},
+    shippingCost: {type: Number, label: 'Lieferungskosten'},
+    customer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer',
+        autopopulate: {select: 'Id name'},
+        label: 'Kunden'
+    },
     item: {
         type: [{
-            billPrice: Number,
-            billQuantity: Number,
-            price: Number,
-            unit: {type: mongoose.Schema.Types.ObjectId, ref: 'Unit', autopopulate: true, form: unitFormExport},
-            quantity: Number,
-            product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', autopopulate: true},
+            product: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product',
+                autopopulate: {select: 'Id name exportVat exportUnit exportPrice exportVat'},
+                label: 'Produkt'
+            },
+            quantity: {type: Number, label: 'Anzahl'},
+            unit: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Unit',
+                autopopulate: true,
+                form: unitFormExport,
+                label: 'Einheit'
+            },
+            price: {type: Number, label: 'Preis'},
+            billQuantity: {type: Number, label: 'Rechnungsanzahl'},
+            billPrice: {type: Number, label: 'Rechnungspreis'},
 
         }],
         form: {
-            type: 'tableSection'
-        }
+            type: 'tableSection',
+            templateOptions: {class: 'col-sm-12'}
+        },
+        label: 'Ware'
     },
     returnItem: {
         type: [{
-            disposal: {type: Boolean, default: true},
-            quantity: Number,
-            product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', autopopulate: true},
+            disposal: {type: Boolean, default: true, label: 'Kaputt'},
+            quantity: {type: Number, label: 'Anzahl'},
+            product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', autopopulate: true, label: 'Produkt'},
         }],
         form: {
-            type: 'tableSection'
-        }
+            type: 'tableSection',
+            templateOptions: {class: 'col-sm-12'}
+        },
+        label: 'Zurückgegebene Ware'
     }
 }, {
     name: 'Export',
-    formatter: `
-            <h4>{{model.name}} - {{model.position}} - {{model.maxHour}}</h4>
-        `,
+    formatterUrl: 'backend/export.html',
     title: 'date',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true,
     tabs: [
         {title: 'basic'},
         {title: 'detail', fields: ['item']},
         {title: 'return', fields: ['returnItem']}
-    ]
+    ],
+    info: {
+        elementClass: 'col-sm-6',
+        editorIcon: {
+            top: '49px',
+            right: '-14px'
+        }
+    },
+    serverFn: {
+        getPersonalInformation: function*() {
+            return yield PersonalInformation.findOne();
+        }
+    },
+    initSchema: function (schema) {
+        schema.virtual('sumNetto').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                sum += item.quantity * item.price;
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('sumBrutto').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                sum += item.quantity * item.price * (1 + item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('vat19').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.product.exportVat === 19) sum += item.quantity * item.price * (item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('vat7').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.product.exportVat === 7) sum += item.quantity * item.price * (item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+
+        // rechnung
+
+        schema.virtual('sumNettoBill').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.billQuantity !== 0) sum += (item.billQuantity || item.quantity) * (item.billPrice || item.price);
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('sumBruttoBill').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.billQuantity !== 0)
+                    sum += (item.billQuantity || item.quantity) * (item.billPrice || item.price) * (1 + item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('vat19Bill').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.product.exportVat === 19 && item.billQuantity !== 0)
+                    sum += (item.billQuantity || item.quantity) * (item.billPrice || item.price) * (item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+
+        schema.virtual('vat7Bill').get(function () {
+            return _.reduce(this.item, (sum, item) => {
+                if (item.product.exportVat === 7 && item.billQuantity !== 0)
+                    sum += (item.billQuantity || item.quantity) * (item.billPrice || item.price) * (item.product.exportVat / 100);
+                return sum;
+            }, 0);
+        })
+    },
+    controller: function ($scope, formService, cms, $uibModal) {
+        $scope.openLieferschein = function () {
+            cms.execServerFn('Export', $scope.model, 'getPersonalInformation').then(({data:info}) => {
+                $uibModal.open({
+                    templateUrl: 'lieferschein.html',
+                    controller: function ($scope, $uibModalInstance, formService, model) {
+                        $scope.info = info;
+                        $scope.model = model
+                        $scope.data = {};
+                        $scope.instance = $uibModalInstance;
+
+                        $scope.cancel = ()=>$uibModalInstance.dismiss('cancel');
+                        $scope.print = () => {
+                            $('#rechnung').printThis({debug: true});
+                        };
+
+                        $scope.showItem = function (item) {
+                            if (item.billQuantity === 0) return false;
+                            return true;
+                        }
+                    },
+                    size: 'lg',
+                    resolve: {
+                        model: $scope.model
+                    }
+                    //windowClass: 'cms-window',
+                });
+            });
+        }
+
+        $scope.openRechnung = function () {
+            cms.execServerFn('Export', $scope.model, 'getPersonalInformation').then(({data:info}) => {
+                $uibModal.open({
+                    templateUrl: 'rechnung.html',
+                    controller: function ($scope, $uibModalInstance, formService, model) {
+                        $scope.info = info;
+                        $scope.model = model
+                        $scope.data = {};
+                        $scope.instance = $uibModalInstance;
+
+                        $scope.cancel = ()=>$uibModalInstance.dismiss('cancel');
+                        $scope.print = () => {
+                            $('#rechnung').printThis({debug: true});
+                        };
+
+                        $scope.showItem = function (item) {
+                            if (item.billQuantity === 0) return false;
+                            return true;
+                        }
+                    },
+                    size: 'lg',
+                    resolve: {
+                        model: $scope.model
+                    }
+                    //windowClass: 'cms-window',
+                });
+            });
+        }
+    }
 });
 
 const unitFormAdjustment = {
@@ -383,11 +575,6 @@ const Adjustment = cms.registerSchema({
         `,
     title: 'date',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true,
     tabs: [
@@ -407,11 +594,6 @@ const Employee = cms.registerSchema({
         `,
     title: 'name',
     isViewElement: false,
-    mTemplate: `
-            <StackLayout>
-                <Label text="{{model.name}} - {{model.position}} - {{model.maxHour}}"></Label>
-            </StackLayout>
-        `,
     fn: {},
     autopopulate: true
 

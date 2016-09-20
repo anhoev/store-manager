@@ -16,10 +16,12 @@
 
             <span class="label label-primary pull-right brand">{{model.inventory}} {{model.exportUnit.name}}</span>
 
-            <h4 class="product-title small-margin">
+            <h4 class="product-title small-margin" style="display: inline-block">
                 <span cms-editable-transclude="model.name">{{model.name}}&nbsp;</span>
                 <span cms-editable-transclude="model.Id">({{model.Id}})</span>
             </h4>
+
+            <button class="btn btn-xs btn-white" ng-click="createAdjustment()">adjust</button>
 
             <hr class="product-hr small-margin">
 
@@ -41,9 +43,7 @@
                         </p>
                     </div>
                 </div>
-                <!--<div class="col-xs-4">
-                    <button class="btn btn-xs btn-white">adjustment</button>
-                </div>-->
+
             </div>
 
         </div>

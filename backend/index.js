@@ -12,4 +12,6 @@ cms.mongoose.connect('mongodb://localhost/store-manager');
 cms.use(require('cmsmon/mobile'));
 require('./store-manager');
 
+cms.data.online.autoOpenAdmin = true;
+
 cms.server('backend/en', '');
