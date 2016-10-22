@@ -314,7 +314,7 @@ const Provider = cms.registerSchema({
     isViewElement: false,
     fn: {},
     autopopulate: true,
-    alwaysLoad: false
+    alwaysLoad: true
 });
 
 // todo: when to use import
@@ -720,7 +720,7 @@ const ListProduct = cms.registerSchema({
     name: {type: String}
 }, {
     name: 'ListProduct',
-    formatterUrl: 'backend/ListProduct.html',
+    formatter:'<h4>ListProduct</h4>',
     title: 'name',
     isViewElement: false,
     fn: {},
@@ -730,6 +730,7 @@ const ListProduct = cms.registerSchema({
             return products;
         }
     },
+    alwaysLoad: true,
     autopopulate: true,
     controller: function ($scope, $uibModal, cms) {
         cms.execServerFn('ListProduct', $scope.model, 'getProducts').then(function ({data}) {

@@ -7,12 +7,12 @@
             <span class="label label-warning pull-right brand"
                   cms-editable-transclude="model.category"
                   ng-repeat="category in model.category">{{category.name}}</span>
-            <span class="label label-info pull-right brand"
+            <!--<span class="label label-info pull-right brand"
                   cms-editable-transclude="model.brand.name">{{model.brand.name}}</span>
             <span class="label label-success pull-right brand"
                   cms-editable-transclude="model.exportVat">{{model.exportVat}} %</span>
             <span class="label label-success pull-right brand"
-                  cms-editable-transclude="model.importVat">{{model.importVat}} %</span>
+                  cms-editable-transclude="model.importVat">{{model.importVat}} %</span>-->
 
             <span class="label label-primary pull-right brand">{{model.inventory}} {{model.exportUnit.name}}</span>
 
@@ -21,7 +21,7 @@
                 <span cms-editable-transclude="model.Id">({{model.Id}})</span>
             </h4>
 
-            <button class="btn btn-xs btn-white" ng-click="createAdjustment()">adjust</button>
+            <button class="btn btn-xs btn-white" ng-click="createAdjustment()">korrektur</button>
 
             <hr class="product-hr small-margin">
 
