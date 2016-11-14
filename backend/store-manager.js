@@ -440,18 +440,16 @@ cms.app.use('/lieferschein.html', cms.express.static(path.resolve(__dirname, 'li
 
 const Export = cms.registerSchema({
     date: {
-        type: Date, label: 'Tag',
-        form: {defaultValue: Date.now()},
+        type: Date, label: 'Tag', default: new Date(),
         query: {
-            default: new Date(),
-            form: {type: 'input', templateOptions: {type: 'month', label: 'Monate'}},
+            form: {type: 'input',defaultValue: new Date(), templateOptions: {type: 'month', label: 'Monate'}},
             fn: month => ({
                 $gte: moment(month).clone().startOf('month').toDate(),
                 $lte: moment(month).clone().endOf('month').toDate()
             })
         }
     },
-    shipDate: {type: Date, default: Date.now(), label: 'Lieferdatum'},
+    shipDate: {type: Date, default: new Date(), label: 'Lieferdatum'},
     Id: {type: Number, label: 'Rechnung Nummer', form: idFormExport},
     paymentOption: {type: String, form: makeSelect('EC', 'Barverkauf', 'Überweisung'), label: 'Zahlungsmethod'},
     status: {type: String, form: makeSelect('BestellungErhalten', 'Bezahlt', 'Geliefert'), label: 'Zustand'},

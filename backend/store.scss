@@ -95,3 +95,8 @@ body {
   -webkit-print-color-adjust: exact;
 }
 
+table.short-padding {
+    td {
+        padding: 4px;
+    }
+}
