@@ -28,18 +28,18 @@ const Brand = cms.registerSchema({
 });
 
 const Reason = cms.registerSchema({
-    name: {type: String}
-},
+        name: {type: String}
+    },
     {
-    name: 'Reason',
-    label: 'Grund',
-    formatter: `
+        name: 'Reason',
+        label: 'Grund',
+        formatter: `
             <h4>{{model.name}}</h4>
         `,
-    title: 'name',
-    isViewElement: false,
-    alwaysLoad: true
-});
+        title: 'name',
+        isViewElement: false,
+        alwaysLoad: true
+    });
 
 const Unit = cms.registerSchema({
     name: {type: String}
@@ -341,7 +341,9 @@ const unitFormImport = {
 };
 const Import = cms.registerSchema({
         date: {
-            type: Date, default: Date.now(), label: 'Datum', query: {
+            type: Date, label: 'Datum',
+            form: {defaultValue: Date.now()},
+            query: {
                 default: new Date(),
                 form: {type: 'input', templateOptions: {type: 'month', label: 'Monate'}},
                 fn: month => ({
@@ -438,7 +440,8 @@ cms.app.use('/lieferschein.html', cms.express.static(path.resolve(__dirname, 'li
 
 const Export = cms.registerSchema({
     date: {
-        type: Date, default: Date.now(), label: 'Tag',
+        type: Date, label: 'Tag',
+        form: {defaultValue: Date.now()},
         query: {
             default: new Date(),
             form: {type: 'input', templateOptions: {type: 'month', label: 'Monate'}},
@@ -651,11 +654,12 @@ const Export = cms.registerSchema({
 });
 
 cms.app.get('/api/exportId', function*(req, res) {
-    const result = yield Export.aggregate().group({
+    const result = yield Export.aggregate().match({}).group({
         _id: "",
         maxID: {$max: "$Id"}
     }).exec();
-    res.send({maxId: result[0].maxID + 1});
+    var maxID = result[0] ? result[0].maxID : 0;
+    res.send({maxId: maxID + 1});
 })
 
 const unitFormAdjustment = {
@@ -720,7 +724,7 @@ const ListProduct = cms.registerSchema({
     name: {type: String}
 }, {
     name: 'ListProduct',
-    formatter:'<h4>ListProduct</h4>',
+    formatter: '<h4>ListProduct</h4>',
     title: 'name',
     isViewElement: false,
     fn: {},
